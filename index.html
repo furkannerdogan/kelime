@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e1b4b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kelime">
+<link rel="manifest" href="manifest.json">
+<title>Kelime Defteri</title>
+<style>
+  :root{--bg:#f1f2f4;--line:#cbd2da;--ink:#0f172a;--mute:#64748b;--accent:#1e1b4b;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding-top:env(safe-area-inset-top);padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .wrap{max-width:760px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:8px}
+  h1{font-family:Georgia,serif;font-size:26px;margin:0}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  input,select,textarea{border:1px solid var(--line);border-radius:6px;padding:9px;background:#fff;font-size:16px;font-family:inherit;width:100%}
+  textarea{font-family:ui-monospace,monospace;font-size:12px}
+  button{font-family:ui-monospace,Menlo,monospace;font-size:12px;text-transform:uppercase;letter-spacing:.08em;
+    border:1px solid var(--line);background:#fff;border-radius:6px;padding:10px 12px;cursor:pointer;color:var(--ink)}
+  button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.dark{background:#0f172a;color:#fff;border-color:#0f172a}
+  .chip{padding:6px 10px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;margin-top:12px}
+  .head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .word{font-family:Georgia,serif;font-size:26px;margin:0}
+  .tr{font-family:Georgia,serif;font-size:17px;color:var(--accent);margin:4px 0 0}
+  .lvl{border:1px solid;border-radius:4px;padding:2px 6px;font-family:ui-monospace,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+  .kolay{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+  .orta{background:#fffbeb;color:#b45309;border-color:#fde68a}
+  .zor{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+  hr{border:0;border-top:1px solid #e2e8f0;margin:12px 0}
+  .tag{display:inline-block;border:1px solid;border-radius:4px;padding:2px 7px;font-size:13px;margin:0 6px 6px 0}
+  .tag.s{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+  .tag.a{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:520px){.cols,.grid2{grid-template-columns:1fr}}
+  .ex{border-left:2px solid var(--line);padding-left:10px;font-style:italic;color:#334155;margin-top:12px}
+  .grade{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+  .grade button{padding:12px 4px;font-size:11px}
+  .g1{border-color:#fecdd3;color:#be123c}
+  .g2{border-color:#fed7aa;color:#c2410c}
+  .g3{border-color:#a7f3d0;color:#047857}
+  .g4{border-color:#bfdbfe;color:#1d4ed8}
+  .due{font-family:ui-monospace,monospace;font-size:9px;color:#94a3b8;display:block;margin-top:2px}
+  .del{border:0;color:#94a3b8;background:none;padding:2px;font-size:11px}
+  .hidden{display:none}
+  footer{margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Kelime Defteri</h1>
+    <span class="mono" id="count"></span>
+  </header>
+
+  <div class="row">
+    <button id="mStudy" class="on" style="flex:1">çalış</button>
+    <button id="mList" style="flex:1">sözlük</button>
+    <button id="mAdd" style="flex:1">+ ekle</button>
+  </div>
+
+  <!-- ÇALIŞ -->
+  <section id="study">
+    <div class="mono" id="sStat" style="margin-top:12px"></div>
+    <div class="card" id="sCard" style="min-height:200px"></div>
+    <div id="sReveal" class="row"><button id="sShow" style="flex:1" class="dark">cevabı göster</button></div>
+    <div id="sGrades" class="grade hidden">
+      <button class="g1" data-g="1">bilmedim<span class="due" id="d1"></span></button>
+      <button class="g2" data-g="2">zor<span class="due" id="d2"></span></button>
+      <button class="g3" data-g="3">iyi<span class="due" id="d3"></span></button>
+      <button class="g4" data-g="4">kolay<span class="due" id="d4"></span></button>
+    </div>
+  </section>
+
+  <!-- SÖZLÜK -->
+  <section id="list" class="hidden">
+    <div class="row"><input id="q" placeholder="İngilizce veya Türkçe ara…"></div>
+    <div class="row">
+      <button class="chip on" data-lvl="hepsi">hepsi</button>
+      <button class="chip" data-lvl="kolay">kolay</button>
+      <button class="chip" data-lvl="orta">orta</button>
+      <button class="chip" data-lvl="zor">zor</button>
+    </div>
+    <div id="listBody"></div>
+  </section>
+
+  <!-- EKLE -->
+  <section id="add" class="hidden">
+    <div class="row">
+      <button id="tForm" class="dark">form</button>
+      <button id="tJson">json</button>
+      <button id="tExp">yedek</button>
+    </div>
+
+    <div id="secForm" class="card">
+      <div class="grid2">
+        <div><span class="mono">kelime / deyim *</span><input id="fW"></div>
+        <div><span class="mono">türkçe karşılık *</span><input id="fTr"></div>
+        <div><span class="mono">tür (verb, adj, idiom…)</span><input id="fPos"></div>
+        <div><span class="mono">seviye</span><select id="fLvl"><option>kolay</option><option selected>orta</option><option>zor</option></select></div>
+      </div>
+      <div style="margin-top:10px"><span class="mono">ingilizce tanım</span><input id="fEn"></div>
+      <div class="grid2" style="margin-top:10px">
+        <div><span class="mono">eş anlamlılar (virgülle)</span><input id="fSyn"></div>
+        <div><span class="mono">zıt anlamlılar (virgülle)</span><input id="fAnt"></div>
+      </div>
+      <div style="margin-top:10px"><span class="mono">örnek cümle</span><input id="fEx"></div>
+      <button id="fAdd" class="on" style="margin-top:12px">kelimeyi ekle</button>
+    </div>
+
+    <div id="secJson" class="card hidden">
+      <span class="mono">json yapıştır (tek kayıt veya liste)</span>
+      <textarea id="jIn" rows="7" placeholder='[{"w":"get (a)hold of","pos":"idiom","lvl":"orta","en":"...","tr":"...","syn":["reach"],"ant":[],"ex":"..."}]'></textarea>
+      <button id="jAdd" class="on" style="margin-top:8px">içe aktar</button>
+    </div>
+
+    <div id="secExp" class="card hidden">
+      <span class="mono">yedek: eklediğin kelimeler + tekrar geçmişi</span>
+      <textarea id="eOut" rows="6" readonly></textarea>
+      <div class="row">
+        <button id="eDl">dosyaya indir</button>
+        <button id="eCopy">panoya kopyala</button>
+      </div>
+      <span class="mono" style="display:block;margin-top:14px">yedekten geri yükle</span>
+      <input type="file" id="eFile" accept=".json,application/json" style="border:0;padding:6px 0">
+    </div>
+    <p id="msg" class="mono"></p>
+  </section>
+
+  <footer class="mono" id="foot"></footer>
+</div>
+
+<script>
+const BUILTIN = [
+ {
+  "w": "abundant",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "existing in very large quantities; more than enough",
+  "tr": "bol, bereketli",
+  "syn": [
+   "plentiful",
+   "ample",
+   "copious"
+  ],
+  "ant": [
+   "scarce",
+   "sparse"
+  ],
+  "ex": "The region gets abundant rainfall in spring."
+ },
+ {
+  "w": "brief",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "lasting only a short time; using few words",
+  "tr": "kısa, özlü",
+  "syn": [
+   "short",
+   "concise"
+  ],
+  "ant": [
+   "lengthy",
+   "prolonged"
+  ],
+  "ex": "He made a brief statement and left the room."
+ },
+ {
+  "w": "sturdy",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "strongly built and not easily damaged",
+  "tr": "sağlam, dayanıklı",
+  "syn": [
+   "robust",
+   "solid"
+  ],
+  "ant": [
+   "flimsy",
+   "frail"
+  ],
+  "ex": "The shelf sits on a sturdy steel frame."
+ },
+ {
+  "w": "genuine",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "real; not fake or pretended",
+  "tr": "gerçek, hakiki",
+  "syn": [
+   "authentic",
+   "real"
+  ],
+  "ant": [
+   "fake",
+   "counterfeit"
+  ],
+  "ex": "The dealer confirmed the signature was genuine."
+ },
+ {
+  "w": "hostile",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "unfriendly; showing opposition",
+  "tr": "düşmanca, hasmane",
+  "syn": [
+   "antagonistic",
+   "unfriendly"
+  ],
+  "ant": [
+   "friendly",
+   "amicable"
+  ],
+  "ex": "The proposal met a hostile reception."
+ },
+ {
+  "w": "humble",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "not proud; modest about one's importance",
+  "tr": "alçakgönüllü, mütevazı",
+  "syn": [
+   "modest",
+   "unassuming"
+  ],
+  "ant": [
+   "arrogant",
+   "boastful"
+  ],
+  "ex": "She stayed humble after winning the prize."
+ },
+ {
+  "w": "vital",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "absolutely necessary",
+  "tr": "hayati, çok önemli",
+  "syn": [
+   "essential",
+   "crucial"
+  ],
+  "ant": [
+   "trivial",
+   "unimportant"
+  ],
+  "ex": "Cooling is vital for high-power motors."
+ },
+ {
+  "w": "accurate",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "correct in all details; free from error",
+  "tr": "doğru, isabetli",
+  "syn": [
+   "precise",
+   "exact"
+  ],
+  "ant": [
+   "inaccurate",
+   "erroneous"
+  ],
+  "ex": "The sensor gives an accurate reading within 0.1 mm."
+ },
+ {
+  "w": "temporary",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "lasting for a limited time only",
+  "tr": "geçici",
+  "syn": [
+   "provisional",
+   "interim"
+  ],
+  "ant": [
+   "permanent",
+   "lasting"
+  ],
+  "ex": "They applied a temporary fix before the shutdown."
+ },
+ {
+  "w": "generous",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "willing to give more than is expected",
+  "tr": "cömert, eli açık",
+  "syn": [
+   "magnanimous",
+   "liberal"
+  ],
+  "ant": [
+   "stingy",
+   "miserly"
+  ],
+  "ex": "The company made a generous offer."
+ },
+ {
+  "w": "anxious",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "worried or nervous about something uncertain",
+  "tr": "endişeli, kaygılı",
+  "syn": [
+   "worried",
+   "uneasy"
+  ],
+  "ant": [
+   "calm",
+   "relaxed"
+  ],
+  "ex": "He was anxious before the oral exam."
+ },
+ {
+  "w": "curious",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "eager to know or learn something",
+  "tr": "meraklı",
+  "syn": [
+   "inquisitive",
+   "interested"
+  ],
+  "ant": [
+   "indifferent",
+   "uninterested"
+  ],
+  "ex": "She was curious about the test results."
+ },
+ {
+  "w": "dense",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "closely packed; thick",
+  "tr": "yoğun, sık",
+  "syn": [
+   "compact",
+   "thick"
+  ],
+  "ant": [
+   "sparse",
+   "thin"
+  ],
+  "ex": "Dense fog closed the airport."
+ },
+ {
+  "w": "gradual",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "happening slowly, in small stages",
+  "tr": "kademeli, tedrici",
+  "syn": [
+   "incremental",
+   "steady"
+  ],
+  "ant": [
+   "sudden",
+   "abrupt"
+  ],
+  "ex": "We observed a gradual increase in temperature."
+ },
+ {
+  "w": "reliable",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "able to be trusted to work or behave well",
+  "tr": "güvenilir",
+  "syn": [
+   "dependable",
+   "trustworthy"
+  ],
+  "ant": [
+   "unreliable",
+   "erratic"
+  ],
+  "ex": "This encoder is reliable even under vibration."
+ },
+ {
+  "w": "stubborn",
+  "pos": "adj",
+  "lvl": "kolay",
+  "en": "refusing to change one's mind",
+  "tr": "inatçı",
+  "syn": [
+   "obstinate",
+   "headstrong"
+  ],
+  "ant": [
+   "compliant",
+   "flexible"
+  ],
+  "ex": "He is too stubborn to accept advice."
+ },
+ {
+  "w": "postpone",
+  "pos": "verb",
+  "lvl": "kolay",
+  "en": "to move an event to a later time",
+  "tr": "ertelemek",
+  "syn": [
+   "defer",
+   "delay"
+  ],
+  "ant": [
+   "advance",
+   "expedite"
+  ],
+  "ex": "They postponed the launch by two weeks."
+ },
+ {
+  "w": "acquire",
+  "pos": "verb",
+  "lvl": "kolay",
+  "en": "to get or obtain something",
+  "tr": "edinmek, kazanmak",
+  "syn": [
+   "obtain",
+   "gain"
+  ],
+  "ant": [
+   "lose",
+   "forfeit"
+  ],
+  "ex": "She acquired fluency in German in two years."
+ },
+ {
+  "w": "abandon",
+  "pos": "verb",
+  "lvl": "kolay",
+  "en": "to leave something permanently; to give up",
+  "tr": "terk etmek, bırakmak",
+  "syn": [
+   "desert",
+   "forsake"
+  ],
+  "ant": [
+   "keep",
+   "retain"
+  ],
+  "ex": "The team abandoned the first prototype."
+ },
+ {
+  "w": "persuade",
+  "pos": "verb",
+  "lvl": "kolay",
+  "en": "to make someone do or believe something by reasoning",
+  "tr": "ikna etmek",
+  "syn": [
+   "convince",
+   "coax"
+  ],
+  "ant": [
+   "dissuade",
+   "deter"
+  ],
+  "ex": "He persuaded them to wait for the new data."
+ },
+ {
+  "w": "hazard",
+  "pos": "noun",
+  "lvl": "kolay",
+  "en": "a source of danger",
+  "tr": "tehlike, risk",
+  "syn": [
+   "danger",
+   "risk"
+  ],
+  "ant": [
+   "safety",
+   "security"
+  ],
+  "ex": "Loose cables are a hazard in the lab."
+ },
+ {
+  "w": "consent",
+  "pos": "noun / verb",
+  "lvl": "kolay",
+  "en": "permission for something; to agree to something",
+  "tr": "rıza, onay; onay vermek",
+  "syn": [
+   "assent",
+   "approval"
+  ],
+  "ant": [
+   "refusal",
+   "objection"
+  ],
+  "ex": "The patient consented to the procedure."
+ },
+ {
+  "w": "candid",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "truthful and straightforward, even when uncomfortable",
+  "tr": "açık sözlü, samimi",
+  "syn": [
+   "frank",
+   "forthright"
+  ],
+  "ant": [
+   "evasive",
+   "guarded"
+  ],
+  "ex": "She gave a candid account of the accident."
+ },
+ {
+  "w": "diligent",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "careful and persistent in work",
+  "tr": "çalışkan, gayretli",
+  "syn": [
+   "industrious",
+   "assiduous"
+  ],
+  "ant": [
+   "lazy",
+   "negligent"
+  ],
+  "ex": "A diligent student reviews notes the same day."
+ },
+ {
+  "w": "reluctant",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "unwilling and hesitant",
+  "tr": "isteksiz, gönülsüz",
+  "syn": [
+   "hesitant",
+   "disinclined"
+  ],
+  "ant": [
+   "eager",
+   "willing"
+  ],
+  "ex": "He was reluctant to sign the contract."
+ },
+ {
+  "w": "ambiguous",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "open to more than one interpretation",
+  "tr": "belirsiz, muğlak",
+  "syn": [
+   "vague",
+   "equivocal"
+  ],
+  "ant": [
+   "clear",
+   "explicit"
+  ],
+  "ex": "The instructions were ambiguous about the deadline."
+ },
+ {
+  "w": "obsolete",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "no longer in use or useful",
+  "tr": "demode, kullanımdan kalkmış",
+  "syn": [
+   "outdated",
+   "antiquated"
+  ],
+  "ant": [
+   "current",
+   "modern"
+  ],
+  "ex": "Fax machines are largely obsolete."
+ },
+ {
+  "w": "resilient",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "able to recover quickly from difficulty or deformation",
+  "tr": "dayanıklı, esnek, çabuk toparlanan",
+  "syn": [
+   "tough",
+   "adaptable"
+  ],
+  "ant": [
+   "fragile",
+   "brittle"
+  ],
+  "ex": "The polymer is resilient under repeated load."
+ },
+ {
+  "w": "scarce",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "insufficient for the demand",
+  "tr": "kıt, az bulunur",
+  "syn": [
+   "rare",
+   "limited"
+  ],
+  "ant": [
+   "abundant",
+   "plentiful"
+  ],
+  "ex": "Clean water was scarce after the flood."
+ },
+ {
+  "w": "tedious",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "too long, slow, and dull",
+  "tr": "sıkıcı, usandırıcı",
+  "syn": [
+   "monotonous",
+   "dull"
+  ],
+  "ant": [
+   "engaging",
+   "stimulating"
+  ],
+  "ex": "Manual data entry is tedious."
+ },
+ {
+  "w": "viable",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "capable of working successfully",
+  "tr": "uygulanabilir, yaşayabilir",
+  "syn": [
+   "feasible",
+   "workable"
+  ],
+  "ant": [
+   "impractical",
+   "unworkable"
+  ],
+  "ex": "This is the only viable option within the budget."
+ },
+ {
+  "w": "prudent",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "acting with care and thought for the future",
+  "tr": "tedbirli, ihtiyatlı",
+  "syn": [
+   "cautious",
+   "judicious"
+  ],
+  "ant": [
+   "reckless",
+   "rash"
+  ],
+  "ex": "It is prudent to keep an emergency fund."
+ },
+ {
+  "w": "rigid",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "stiff; not able to bend or be changed",
+  "tr": "katı, esnemez",
+  "syn": [
+   "stiff",
+   "inflexible"
+  ],
+  "ant": [
+   "flexible",
+   "pliable"
+  ],
+  "ex": "The schedule is too rigid for field work."
+ },
+ {
+  "w": "plausible",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "seeming reasonable or probable",
+  "tr": "makul, akla yatkın",
+  "syn": [
+   "credible",
+   "believable"
+  ],
+  "ant": [
+   "implausible",
+   "far-fetched"
+  ],
+  "ex": "That is a plausible explanation for the drift."
+ },
+ {
+  "w": "inevitable",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "certain to happen; unavoidable",
+  "tr": "kaçınılmaz",
+  "syn": [
+   "unavoidable",
+   "certain"
+  ],
+  "ant": [
+   "avoidable",
+   "preventable"
+  ],
+  "ex": "Some wear is inevitable in sliding contacts."
+ },
+ {
+  "w": "subtle",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "so delicate or precise as to be hard to notice",
+  "tr": "ince, göze çarpmayan",
+  "syn": [
+   "understated",
+   "nuanced"
+  ],
+  "ant": [
+   "obvious",
+   "blatant"
+  ],
+  "ex": "There was a subtle change in the vibration signal."
+ },
+ {
+  "w": "redundant",
+  "pos": "adj",
+  "lvl": "orta",
+  "en": "not needed; (engineering) duplicated for backup",
+  "tr": "gereksiz, fazlalık; yedekli",
+  "syn": [
+   "superfluous",
+   "unnecessary"
+  ],
+  "ant": [
+   "essential",
+   "necessary"
+  ],
+  "ex": "The second sentence is redundant."
+ },
+ {
+  "w": "mitigate",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to make something less severe",
+  "tr": "hafifletmek, azaltmak",
+  "syn": [
+   "alleviate",
+   "lessen"
+  ],
+  "ant": [
+   "aggravate",
+   "intensify"
+  ],
+  "ex": "Dampers mitigate the resonance peak."
+ },
+ {
+  "w": "scrutinize",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to examine closely and critically",
+  "tr": "incelemek, irdelemek",
+  "syn": [
+   "inspect",
+   "examine"
+  ],
+  "ant": [
+   "skim",
+   "ignore"
+  ],
+  "ex": "Auditors scrutinized every line of the accounts."
+ },
+ {
+  "w": "concede",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to admit something is true; to surrender something",
+  "tr": "kabul etmek, taviz vermek",
+  "syn": [
+   "admit",
+   "yield"
+  ],
+  "ant": [
+   "deny",
+   "contest"
+  ],
+  "ex": "He conceded that the model was oversimplified."
+ },
+ {
+  "w": "deteriorate",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to become progressively worse",
+  "tr": "bozulmak, kötüleşmek",
+  "syn": [
+   "worsen",
+   "decline"
+  ],
+  "ant": [
+   "improve",
+   "recover"
+  ],
+  "ex": "The bearings deteriorated after 200 hours."
+ },
+ {
+  "w": "endorse",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to declare public support for",
+  "tr": "desteklemek, onaylamak",
+  "syn": [
+   "support",
+   "approve"
+  ],
+  "ant": [
+   "oppose",
+   "reject"
+  ],
+  "ex": "The board endorsed the revised plan."
+ },
+ {
+  "w": "hinder",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to make an action slow or difficult",
+  "tr": "engellemek, zorlaştırmak",
+  "syn": [
+   "impede",
+   "obstruct"
+  ],
+  "ant": [
+   "assist",
+   "facilitate"
+  ],
+  "ex": "Fog hindered the search operation."
+ },
+ {
+  "w": "comply",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to act in accordance with a rule or request",
+  "tr": "uymak, riayet etmek",
+  "syn": [
+   "obey",
+   "conform"
+  ],
+  "ant": [
+   "defy",
+   "disobey"
+  ],
+  "ex": "All devices must comply with the safety standard."
+ },
+ {
+  "w": "anticipate",
+  "pos": "verb",
+  "lvl": "orta",
+  "en": "to expect something and act in advance",
+  "tr": "öngörmek, beklemek",
+  "syn": [
+   "expect",
+   "foresee"
+  ],
+  "ant": [
+   "overlook",
+   "disregard"
+  ],
+  "ex": "Engineers anticipate failure modes during design."
+ },
+ {
+  "w": "deficit",
+  "pos": "noun",
+  "lvl": "orta",
+  "en": "the amount by which something falls short",
+  "tr": "açık, eksiklik",
+  "syn": [
+   "shortfall",
+   "shortage"
+  ],
+  "ant": [
+   "surplus",
+   "excess"
+  ],
+  "ex": "The department ran a budget deficit."
+ },
+ {
+  "w": "remedy",
+  "pos": "noun / verb",
+  "lvl": "orta",
+  "en": "a solution to a problem; to put right",
+  "tr": "çare, çözüm; gidermek",
+  "syn": [
+   "cure",
+   "solution"
+  ],
+  "ant": [
+   "worsening",
+   "aggravation"
+  ],
+  "ex": "Rebalancing the rotor remedied the noise."
+ },
+ {
+  "w": "consensus",
+  "pos": "noun",
+  "lvl": "orta",
+  "en": "general agreement within a group",
+  "tr": "uzlaşı, fikir birliği",
+  "syn": [
+   "agreement",
+   "accord"
+  ],
+  "ant": [
+   "disagreement",
+   "dissent"
+  ],
+  "ex": "The team reached a consensus on the design."
+ },
+ {
+  "w": "dilemma",
+  "pos": "noun",
+  "lvl": "orta",
+  "en": "a choice between two equally undesirable options",
+  "tr": "ikilem, çıkmaz",
+  "syn": [
+   "quandary",
+   "predicament"
+  ],
+  "ant": [
+   "certainty",
+   "clear choice"
+  ],
+  "ex": "He faced a dilemma between cost and safety."
+ },
+ {
+  "w": "threshold",
+  "pos": "noun",
+  "lvl": "orta",
+  "en": "the level at which something starts to happen",
+  "tr": "eşik (değer)",
+  "syn": [
+   "limit",
+   "cutoff"
+  ],
+  "ant": [],
+  "ex": "The alarm triggers above a 60 dB threshold."
+ },
+ {
+  "w": "meticulous",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "showing extreme attention to detail",
+  "tr": "titiz, ince eleyip sık dokuyan",
+  "syn": [
+   "scrupulous",
+   "thorough"
+  ],
+  "ant": [
+   "careless",
+   "slapdash"
+  ],
+  "ex": "The technician kept meticulous calibration records."
+ },
+ {
+  "w": "arduous",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "requiring great and prolonged effort",
+  "tr": "çetin, meşakkatli",
+  "syn": [
+   "strenuous",
+   "grueling"
+  ],
+  "ant": [
+   "effortless",
+   "easy"
+  ],
+  "ex": "The final ascent was arduous."
+ },
+ {
+  "w": "lucid",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "expressed clearly; easy to understand",
+  "tr": "açık, anlaşılır, berrak",
+  "syn": [
+   "coherent",
+   "intelligible"
+  ],
+  "ant": [
+   "confusing",
+   "muddled"
+  ],
+  "ex": "He gave a lucid explanation of the control loop."
+ },
+ {
+  "w": "verbose",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "using more words than needed",
+  "tr": "ağdalı, gereksiz uzun",
+  "syn": [
+   "wordy",
+   "long-winded"
+  ],
+  "ant": [
+   "concise",
+   "terse"
+  ],
+  "ex": "The report was verbose and repetitive."
+ },
+ {
+  "w": "futile",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "incapable of producing any useful result",
+  "tr": "beyhude, nafile",
+  "syn": [
+   "pointless",
+   "vain"
+  ],
+  "ant": [
+   "effective",
+   "fruitful"
+  ],
+  "ex": "Further argument was futile."
+ },
+ {
+  "w": "innate",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "present from birth; inborn",
+  "tr": "doğuştan gelen",
+  "syn": [
+   "inherent",
+   "congenital"
+  ],
+  "ant": [
+   "acquired",
+   "learned"
+  ],
+  "ex": "Birds have an innate sense of direction."
+ },
+ {
+  "w": "tenacious",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "holding firmly; not giving up easily",
+  "tr": "azimli, yılmaz, sıkı tutan",
+  "syn": [
+   "persistent",
+   "dogged"
+  ],
+  "ant": [
+   "yielding",
+   "irresolute"
+  ],
+  "ex": "She is a tenacious negotiator."
+ },
+ {
+  "w": "austere",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "severe or plain; without comfort or decoration",
+  "tr": "sade, çetin, sert",
+  "syn": [
+   "stark",
+   "spartan"
+  ],
+  "ant": [
+   "luxurious",
+   "ornate"
+  ],
+  "ex": "The lab kept an austere budget that year."
+ },
+ {
+  "w": "cogent",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "clear, logical, and convincing",
+  "tr": "inandırıcı, güçlü (argüman)",
+  "syn": [
+   "compelling",
+   "persuasive"
+  ],
+  "ant": [
+   "weak",
+   "unconvincing"
+  ],
+  "ex": "He offered a cogent argument against the redesign."
+ },
+ {
+  "w": "ubiquitous",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "present or found everywhere",
+  "tr": "her yerde bulunan, yaygın",
+  "syn": [
+   "omnipresent",
+   "pervasive"
+  ],
+  "ant": [
+   "rare",
+   "scarce"
+  ],
+  "ex": "Microcontrollers are ubiquitous in modern cars."
+ },
+ {
+  "w": "ephemeral",
+  "pos": "adj",
+  "lvl": "zor",
+  "en": "lasting for a very short time",
+  "tr": "kısa ömürlü, geçici",
+  "syn": [
+   "fleeting",
+   "transient"
+  ],
+  "ant": [
+   "enduring",
+   "permanent"
+  ],
+  "ex": "The transient was ephemeral but damaging."
+ },
+ {
+  "w": "exacerbate",
+  "pos": "verb",
+  "lvl": "zor",
+  "en": "to make a bad situation worse",
+  "tr": "kötüleştirmek, şiddetlendirmek",
+  "syn": [
+   "aggravate",
+   "worsen"
+  ],
+  "ant": [
+   "alleviate",
+   "ease"
+  ],
+  "ex": "Excess heat exacerbates the bearing wear."
+ },
+ {
+  "w": "undermine",
+  "pos": "verb",
+  "lvl": "zor",
+  "en": "to weaken something gradually",
+  "tr": "zayıflatmak, baltalamak",
+  "syn": [
+   "weaken",
+   "erode"
+  ],
+  "ant": [
+   "strengthen",
+   "bolster"
+  ],
+  "ex": "Repeated delays undermined confidence in the schedule."
+ },
+ {
+  "w": "refute",
+  "pos": "verb",
+  "lvl": "zor",
+  "en": "to prove a statement false",
+  "tr": "çürütmek, yalanlamak",
+  "syn": [
+   "disprove",
+   "rebut"
+  ],
+  "ant": [
+   "confirm",
+   "corroborate"
+  ],
+  "ex": "The measurements refuted the initial hypothesis."
+ },
+ {
+  "w": "reconcile",
+  "pos": "verb",
+  "lvl": "zor",
+  "en": "to make two conflicting things compatible",
+  "tr": "bağdaştırmak, uzlaştırmak",
+  "syn": [
+   "harmonize",
+   "settle"
+  ],
+  "ant": [
+   "estrange",
+   "conflict"
+  ],
+  "ex": "It is hard to reconcile the model with the test data."
+ },
+ {
+  "w": "circumvent",
+  "pos": "verb",
+  "lvl": "zor",
+  "en": "to find a way around an obstacle or rule",
+  "tr": "atlatmak, etrafından dolaşmak",
+  "syn": [
+   "bypass",
+   "evade"
+  ],
+  "ant": [
+   "confront",
+   "obey"
+  ],
+  "ex": "The design circumvents the patent."
+ },
+ {
+  "w": "delineate",
+  "pos": "verb",
+  "lvl": "zor",
+  "en": "to describe or mark the boundaries of something precisely",
+  "tr": "sınırlarını çizmek, ayrıntılı tanımlamak",
+  "syn": [
+   "outline",
+   "define"
+  ],
+  "ant": [
+   "blur",
+   "confuse"
+  ],
+  "ex": "The standard delineates the test conditions."
+ },
+ {
+  "w": "inclination",
+  "pos": "noun",
+  "lvl": "zor",
+  "en": "a natural tendency toward something",
+  "tr": "eğilim, meyil",
+  "syn": [
+   "tendency",
+   "propensity"
+  ],
+  "ant": [
+   "aversion",
+   "disinclination"
+  ],
+  "ex": "He has an inclination toward research rather than sales."
+ },
+ {
+  "w": "paradigm",
+  "pos": "noun",
+  "lvl": "zor",
+  "en": "a typical pattern or model of thought",
+  "tr": "paradigma, düşünce modeli",
+  "syn": [
+   "model",
+   "framework"
+  ],
+  "ant": [],
+  "ex": "Model-based design became the dominant paradigm."
+ },
+ {
+  "w": "discrepancy",
+  "pos": "noun",
+  "lvl": "zor",
+  "en": "a difference between things that should match",
+  "tr": "tutarsızlık, uyuşmazlık",
+  "syn": [
+   "inconsistency",
+   "mismatch"
+  ],
+  "ant": [
+   "agreement",
+   "consistency"
+  ],
+  "ex": "There is a 3% discrepancy between the two sensors."
+ }
+];
+const DAY = 864e5, MIN = 6e4;
+
+const S = {custom:[], srs:{}, q:"", lvl:"hepsi", mode:"study", cur:null, open:false, storeOK:true};
+const $ = id => document.getElementById(id);
+const msg = t => { $("msg").textContent = t || ""; };
+
+function load(){
+  try{
+    S.custom = JSON.parse(localStorage.getItem("kd_custom") || "[]");
+    S.srs = JSON.parse(localStorage.getItem("kd_srs") || "{}");
+  }catch(e){ S.storeOK = false; }
+}
+function save(){
+  try{
+    localStorage.setItem("kd_custom", JSON.stringify(S.custom));
+    localStorage.setItem("kd_srs", JSON.stringify(S.srs));
+  }catch(e){ S.storeOK=false; msg("Kayıt yapılamadı. Yedek sekmesinden dosyaya indir."); }
+}
+const all = () => [...S.custom.map(c=>({...c,custom:true})), ...BUILTIN];
+const esc = t => String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tags = (a,c) => (a&&a.length) ? a.map(x=>`<span class="tag ${c}">${esc(x)}</span>`).join("") : '<span style="color:#94a3b8">—</span>';
+
+/* ---------- SM-2 benzeri aralık hesabı ---------- */
+function preview(card, g){
+  const s = card || {ef:2.5, iv:0, reps:0};
+  let ef = s.ef, iv = s.iv, reps = s.reps;
+  if(g === 1){ return {ef: Math.max(1.3, ef-0.2), iv: 0, reps: 0, due: Date.now() + 10*MIN}; }
+  if(g === 2){ ef = Math.max(1.3, ef-0.15); iv = reps === 0 ? 1 : Math.max(1, Math.round(iv*1.2)); }
+  else if(g === 3){ iv = reps === 0 ? 1 : (reps === 1 ? 3 : Math.round(iv*ef)); }
+  else { ef = ef + 0.1; iv = reps === 0 ? 3 : Math.round(iv*ef*1.3); }
+  iv = Math.min(iv, 365);
+  return {ef, iv, reps: reps+1, due: Date.now() + iv*DAY};
+}
+const fmt = iv => iv === 0 ? "10 dk" : (iv === 1 ? "1 gün" : (iv < 30 ? iv+" gün" : Math.round(iv/30)+" ay"));
+
+function queue(){
+  const now = Date.now();
+  const due = [], fresh = [];
+  all().forEach(it=>{
+    const s = S.srs[it.w];
+    if(!s) fresh.push(it);
+    else if(s.due <= now) due.push(it);
+  });
+  due.sort((a,b)=>S.srs[a.w].due - S.srs[b.w].due);
+  return {due, fresh};
+}
+
+function renderStudy(){
+  const {due, fresh} = queue();
+  $("sStat").textContent = `tekrar: ${due.length} · yeni: ${fresh.length}`;
+  if(!S.cur){
+    const pool = due.length ? due : fresh;
+    if(!pool.length){
+      $("sCard").innerHTML = "<p>Şimdilik bitti. Vakti gelen kart yok.</p>";
+      $("sReveal").classList.add("hidden"); $("sGrades").classList.add("hidden");
+      return;
+    }
+    S.cur = pool[0]; S.open = false;
+  }
+  const it = S.cur;
+  const head = `<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">
+      <h3 class="word">${esc(it.w)}</h3><span class="mono">${esc(it.pos)}</span>
+      <span class="lvl ${it.lvl}">${it.lvl}</span></div>`;
+  $("sCard").innerHTML = S.open
+    ? head + `<p class="tr">${esc(it.tr)}</p><p>${esc(it.en)}</p>
+        <div style="margin-top:8px">${tags(it.syn,"s")}${tags(it.ant,"a")}</div>
+        ${it.ex?`<p class="ex">${esc(it.ex)}</p>`:""}`
+    : head + `<p class="mono" style="margin-top:28px">anlamını hatırla, sonra cevabı göster</p>`;
+  $("sReveal").classList.toggle("hidden", S.open);
+  $("sGrades").classList.toggle("hidden", !S.open);
+  if(S.open){
+    [1,2,3,4].forEach(g=>{ $("d"+g).textContent = fmt(preview(S.srs[it.w], g).iv); });
+  }
+}
+
+function grade(g){
+  if(!S.cur) return;
+  S.srs[S.cur.w] = preview(S.srs[S.cur.w], g);
+  save(); S.cur = null; S.open = false; renderStudy(); renderCount();
+}
+
+/* ---------- sözlük ---------- */
+function filtered(){
+  const s = S.q.trim().toLocaleLowerCase("tr");
+  return all().filter(it=>{
+    if(S.lvl !== "hepsi" && it.lvl !== S.lvl) return false;
+    if(!s) return true;
+    return [it.w,it.tr,it.en,...(it.syn||[]),...(it.ant||[])].join(" ").toLocaleLowerCase("tr").includes(s);
+  });
+}
+function renderList(){
+  const l = filtered();
+  $("listBody").innerHTML = l.length ? l.map(it=>{
+    const s = S.srs[it.w];
+    const st = s ? (s.due<=Date.now() ? "tekrar zamanı" : "sonraki: "+new Date(s.due).toLocaleDateString("tr-TR")) : "henüz çalışılmadı";
+    return `<article class="card">
+      <div class="head">
+        <div>
+          <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">
+            <h3 class="word">${esc(it.w)}</h3><span class="mono">${esc(it.pos)}</span>
+            <span class="lvl ${it.lvl}">${it.lvl}</span>
+          </div>
+          <p class="tr">${esc(it.tr)}</p>
+        </div>
+        <div style="text-align:right">
+          <span class="mono">${st}</span>
+          ${it.custom?`<br><button class="del" data-del="${esc(it.w)}">sil</button>`:""}
+        </div>
+      </div>
+      <hr><p>${esc(it.en)}</p>
+      <div class="cols">
+        <div><div class="mono">eş anlamlı</div>${tags(it.syn,"s")}</div>
+        <div><div class="mono">zıt anlamlı</div>${tags(it.ant,"a")}</div>
+      </div>
+      ${it.ex?`<p class="ex">${esc(it.ex)}</p>`:""}
+    </article>`;
+  }).join("") : '<p style="margin-top:16px">Eşleşen kelime yok.</p>';
+}
+
+function renderCount(){
+  const {due, fresh} = queue();
+  const learned = Object.keys(S.srs).length;
+  $("count").textContent = `${learned}/${all().length} başlandı · ${due.length} tekrar`;
+  $("foot").textContent = `${BUILTIN.length} hazır + ${S.custom.length} eklenen · veriler bu cihazda saklanır, ara sıra yedek al`;
+  $("eOut").value = JSON.stringify({words:S.custom.map(({custom,...r})=>r), srs:S.srs}, null, 1);
+}
+function render(){ renderCount(); if(S.mode==="study") renderStudy(); if(S.mode==="list") renderList(); }
+
+/* ---------- ekleme ---------- */
+function addMany(items){
+  const map = new Map(S.custom.map(c=>[c.w.toLowerCase(),c]));
+  let fresh = 0;
+  items.forEach(it=>{ if(!map.has(it.w.toLowerCase())) fresh++; map.set(it.w.toLowerCase(), it); });
+  S.custom = [...map.values()]; save(); render();
+  return fresh;
+}
+const splitList = s => s.split(",").map(x=>x.trim()).filter(Boolean);
+
+function importJSON(text){
+  let d; try{ d = JSON.parse(text); } catch(e){ msg("JSON okunamadı."); return; }
+  if(d && !Array.isArray(d) && d.words){            // tam yedek dosyası
+    if(d.srs && typeof d.srs === "object") S.srs = {...S.srs, ...d.srs};
+    d = d.words;
+  }
+  const arr = Array.isArray(d) ? d : [d];
+  const clean = arr.filter(o=>o && typeof o.w==="string" && o.w.trim()).map(o=>({
+    w:String(o.w).trim(), pos:String(o.pos||"—"),
+    lvl:["kolay","orta","zor"].includes(o.lvl)?o.lvl:"orta",
+    en:String(o.en||""), tr:String(o.tr||""),
+    syn:Array.isArray(o.syn)?o.syn.map(String):[],
+    ant:Array.isArray(o.ant)?o.ant.map(String):[],
+    ex:String(o.ex||"")}));
+  if(!clean.length){ msg('Geçerli kayıt yok; her kayıtta "w" alanı olmalı.'); return; }
+  addMany(clean); msg(`${clean.length} kayıt işlendi.`);
+}
+
+/* ---------- olaylar ---------- */
+function mode(m){
+  S.mode = m;
+  ["study","list","add"].forEach(x=>$(x).classList.toggle("hidden", x!==m));
+  $("mStudy").className = m==="study"?"on":""; $("mStudy").style.flex="1";
+  $("mList").className  = m==="list" ?"on":""; $("mList").style.flex="1";
+  $("mAdd").className   = m==="add"  ?"on":""; $("mAdd").style.flex="1";
+  render();
+}
+$("mStudy").onclick=()=>mode("study"); $("mList").onclick=()=>mode("list"); $("mAdd").onclick=()=>mode("add");
+$("sShow").onclick=()=>{ S.open=true; renderStudy(); };
+$("sCard").onclick=()=>{ if(!S.open && S.cur){ S.open=true; renderStudy(); } };
+document.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>grade(+b.dataset.g));
+$("q").oninput=e=>{ S.q=e.target.value; renderList(); };
+document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); S.lvl=b.dataset.lvl; renderList();
+});
+document.addEventListener("click", e=>{
+  const d = e.target.closest("[data-del]");
+  if(d){ S.custom = S.custom.filter(c=>c.w!==d.dataset.del); save(); render(); }
+});
+function tab(n){
+  ["Form","Json","Exp"].forEach(t=>{
+    $("t"+t).className = t.toLowerCase()===n ? "dark" : "";
+    $("sec"+t).classList.toggle("hidden", t.toLowerCase()!==n);
+  }); msg("");
+}
+$("tForm").onclick=()=>tab("form"); $("tJson").onclick=()=>tab("json"); $("tExp").onclick=()=>tab("exp");
+$("fAdd").onclick=()=>{
+  const w=$("fW").value.trim(), tr=$("fTr").value.trim();
+  if(!w||!tr){ msg("Kelime ve Türkçe karşılık zorunlu."); return; }
+  const n = addMany([{w, pos:$("fPos").value.trim()||"—", lvl:$("fLvl").value, en:$("fEn").value.trim(), tr,
+    syn:splitList($("fSyn").value), ant:splitList($("fAnt").value), ex:$("fEx").value.trim()}]);
+  ["fW","fTr","fPos","fEn","fSyn","fAnt","fEx"].forEach(i=>$(i).value="");
+  msg(n?"1 kelime eklendi.":"Aynı kelime vardı, güncellendi.");
+};
+$("jAdd").onclick=()=>{ importJSON($("jIn").value); $("jIn").value=""; };
+$("eDl").onclick=()=>{
+  const b = new Blob([$("eOut").value], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(b); a.download = "kelime-yedek.json"; a.click(); URL.revokeObjectURL(a.href);
+};
+$("eCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText($("eOut").value); msg("Kopyalandı."); }catch(e){ msg("Kopyalanamadı, elle seç."); } };
+$("eFile").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>importJSON(r.result); r.readAsText(f); };
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+
+load();
+if(!S.storeOK) msg("Bu tarayıcı kaydı engelliyor.");
+mode("study");
+</script>
+</body>
+</html>
